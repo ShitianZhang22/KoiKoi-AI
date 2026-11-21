@@ -9,6 +9,21 @@ import torch # 1.8.1
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Monkey patch for compatibility with PyTorch 1.8.1 models in newer PyTorch versions
+import torch.nn.modules.linear
+if not hasattr(torch.nn.modules.linear, '_LinearWithBias'):
+    torch.nn.modules.linear._LinearWithBias = nn.Linear
+torch.nn.MultiheadAttention.batch_first = False
+torch.nn.TransformerEncoderLayer.norm_first = False
+
+# Override torch.load's default weights_only behavior to False for compatibility
+_orig_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _orig_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
 # length: 48(discard/pick), 50(koikoi)
 # origin input size: (BATCH_SIZE, nFeature, length)
 # conv1d input size: (BATCH_SIZE, nFeature, length)

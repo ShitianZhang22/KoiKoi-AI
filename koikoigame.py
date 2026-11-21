@@ -13,6 +13,21 @@ import time
 import numpy as np
 import torch
 
+# Monkey patch for compatibility with PyTorch 1.8.1 models in newer PyTorch versions
+import torch.nn.modules.linear
+if not hasattr(torch.nn.modules.linear, '_LinearWithBias'):
+    torch.nn.modules.linear._LinearWithBias = torch.nn.Linear
+torch.nn.MultiheadAttention.batch_first = False
+torch.nn.TransformerEncoderLayer.norm_first = False
+
+# Override torch.load's default weights_only behavior to False for compatibility
+_orig_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _orig_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
 
 class DefaultVar():
     DEFAULT_ROUND_TOTAL = 8
